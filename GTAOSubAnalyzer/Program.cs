@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -18,7 +19,8 @@ namespace GTAOSubAnalyzer
         static async Task MainAsync()
         {
             Program program = new Program();
-            await program.FetchPosts();
+            // await program.FetchPosts();  // Used for downloading/trimming raw post data
+            await program.ReadPosts();  // Need output.json from FetchPosts()
         }
 
         async Task FetchPosts()
@@ -56,6 +58,116 @@ namespace GTAOSubAnalyzer
             await File.WriteAllTextAsync("./output.json", JsonConvert.SerializeObject(submissions));
             Console.WriteLine("Exporting complete.");
             Console.Read();
+        }
+
+        async Task ReadPosts()
+        {
+            Console.WriteLine("Trying to read JSON from output.json...");
+            string subStr = await File.ReadAllTextAsync("./output.json");
+            var subList = JsonConvert.DeserializeObject<List<Submission>>(subStr);
+            int subCount = subList.Count;
+
+            CheckMostOccurence(subList);
+            // var returnedDict = CheckOccurence(subList);
+            // foreach (var entry in returnedDict) Console.WriteLine($"{entry.Key}: {entry.Value};");
+            Console.Read();
+        }
+
+        /// <summary>
+        /// Checks post title and text against a list of keywords.
+        /// </summary>
+        /// <param name="subs"></param>
+        /// <returns></returns>
+        Dictionary<string, int> CheckOccurence(List<Submission> subs)
+        {
+            Console.WriteLine("Start checking occurences...");
+            Console.WriteLine("Time now: " + DateTime.Now);
+            var dynamicDict = new Dictionary<string, int>()
+            {
+                { "mission", 0 },
+                { "heist", 0 },
+                { "bunker", 0 },
+                { "coke", 0 },
+
+                { "kuruma", 0 },
+                { "karuma", 0 },
+                { "kuroma", 0 },
+                { "karoma", 0 },
+                { "karomu", 0 },
+
+
+                { "buzzard", 0 },
+                { "avenger", 0 },
+                { "hunter", 0 },
+                { "akula", 0 },
+                { "akuma", 0 },
+
+                { "mrbossftw", 0 },
+                { "mrcuntftw", 0 },
+
+                { "griefer", 0 },
+                { "greifer", 0 },
+                { "modder", 0 },
+                { "noob", 0 },
+                
+                { "r*", 0 },
+                { "rockstar", 0 },
+                { "cockstar", 0 },
+
+                { "server", 0 },
+                { "lag", 0 },
+                { "loading", 0 },
+            };
+            var templateDict = new Dictionary<string, int>();
+            foreach (var entry in dynamicDict) templateDict.Add(entry.Key, entry.Value);
+            
+            foreach (var sub in subs)
+            {
+                string text = sub.Title + sub.Selftext;
+                foreach (var entry in templateDict)
+                    if (Contains(entry.Key, text.ToLower())) dynamicDict[entry.Key] ++;
+            }
+            Console.WriteLine("Finished. Time now: " + DateTime.Now);
+            return dynamicDict;
+        }
+
+        /// <summary>
+        /// Counts users having most post submissions.
+        /// </summary>
+        /// <param name="subs"></param>
+        void CheckMostOccurence(List<Submission> subs)
+        {
+            List<string> users = new List<string>();
+            List<int> posts = new List<int>();
+
+            foreach (var sub in subs)
+            {
+                if (!users.Contains(sub.Author))
+                {
+                    users.Add(sub.Author);
+                    posts.Add(1);
+                }
+                else posts[users.IndexOf(sub.Author)]++;
+            }
+            // Print out top 100 posters
+            for (int i = 1; i <= 100; i ++)
+            {
+                int top = posts.IndexOf(posts.Max());
+                Console.WriteLine($"Top {i}: {users[top]}, {posts.Max()}");
+                users.RemoveAt(top);
+                posts.RemoveAt(top);
+            }
+        }
+
+        /// <summary>
+        /// Quicker method to check whether a string contains another one.
+        /// </summary>
+        /// <param name="find"></param>
+        /// <param name="from"></param>
+        /// <returns></returns>
+        static bool Contains(string find, string from)
+        {
+            return (from.Length - from.Replace(find, "").Length) / find.Length > 0;
         }
     }
 }
