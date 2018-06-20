@@ -23,6 +23,7 @@ namespace GTAOSubAnalyzer
 
         async Task FetchPosts()
         {
+            var subredditName = "gtaonline";    // Subreddit name
             var afterTime = 1372880565;   // Subreddit creation timestamp
             var beforeTime = (int)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;    // Current timestamp
 
@@ -35,7 +36,7 @@ namespace GTAOSubAnalyzer
                 // Pushshift API
                 Console.WriteLine($"Quering 1000 posts before {beforeTime}...");
                 var responseMsg = await client.GetAsync("https://api.pushshift.io/reddit/search/submission/" +
-                    $"?subreddit=gtaonline&sort=desc&sort_type=created_utc&size=1000&after=1372880565&before={beforeTime}");
+                    $"?subreddit={subredditName}&sort=desc&sort_type=created_utc&size=1000&after=1372880565&before={beforeTime}");
                 string responseStr = await responseMsg.Content.ReadAsStringAsync();
                 var jo = JObject.Parse(responseStr);
                 var jt = jo.SelectToken("data");
